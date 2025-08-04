@@ -3,15 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/rds/auth"
+	"github.com/tomoliveirabastos/go-rds-db-connector/interfaces"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
-type DatabaseConnect struct {
+type DatabaseConnect[T interfaces.DbInterface] struct {
 	Tls        bool
 	DbName     string
 	DbUser     string
@@ -20,18 +20,10 @@ type DatabaseConnect struct {
 	DbPassword string
 }
 
-func NewDatabaseConnect() *DatabaseConnect {
-	return &DatabaseConnect{
-		Tls:        false,
-		DbName:     os.Getenv("DB_NAME"),
-		DbUser:     os.Getenv("DB_USER"),
-		DbHost:     os.Getenv("DB_HOST"),
-		DbPort:     os.Getenv("DB_PORT"),
-		DbPassword: os.Getenv("DB_PASSWORD"),
-	}
-}
+func (d *DatabaseConnect[T]) Connect(dbInterface T) *gorm.DB {
 
-func (d *DatabaseConnect) Connect() *gorm.DB {
+	dbInterface.LoadFromEnv(d)
+
 	stringTls := "true"
 
 	if !d.Tls {
@@ -49,7 +41,7 @@ func (d *DatabaseConnect) Connect() *gorm.DB {
 	return db
 }
 
-func (d *DatabaseConnect) SetAuthenticationToken(ctx context.Context) {
+func (d *DatabaseConnect[T]) SetAuthenticationToken(ctx context.Context) {
 	cfg, err := config.LoadDefaultConfig(ctx)
 
 	d.Tls = true
